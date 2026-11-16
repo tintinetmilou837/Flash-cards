@@ -77,3 +77,24 @@ select,input[type=search]{width:100%;padding:12px;border:0;border-radius:12px;ba
 .qb i{display:block}
 .ql{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;font-size:14px}
 .ql i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+
+.wwrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.wh{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.wh b{display:block;font-size:24px;line-height:1.2}
+.wh span{color:var(--mu);font-size:18px}
+.wh .cw{font:22px "Songti TC","Noto Serif TC",serif;color:var(--mu)}
+.wh .cw u{text-decoration:none;color:var(--ac);font-weight:700}
+.wbox{position:relative;background:var(--cd);border-radius:20px;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;overflow:hidden}
+.wgrid{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wgrid *{fill:none;stroke:var(--ln);stroke-width:1;vector-effect:non-scaling-stroke}
+.wgrid path{stroke-dasharray:5 5}
+#wc{position:absolute;inset:0}
+#wc svg{display:block;touch-action:none}
+.wbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.wbtn button{border:0;border-radius:14px;padding:14px;background:var(--cd);color:var(--ac);font-size:16px}
+.wr{text-align:center;background:var(--cd);border-radius:18px;padding:14px;border-top:4px solid var(--c);width:100%;max-width:520px}
+.wr b{display:block;font-size:22px}
+.wr span{color:var(--mu);font-size:14px}
+.wr .go{margin-top:12px;padding:12px}
+.wgs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
+.wgs span{min-width:54px;padding:6px 10px;border-radius:12px;color:#fff;font:28px "Songti TC","Noto Serif TC",serif;text-align:center;background:var(--c)}

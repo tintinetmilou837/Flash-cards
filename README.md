@@ -27,6 +27,17 @@ Oublié → F · Difficile → −1 · Bien → +1 · Facile → +2 (une carte n
 ## Historique
 L'onglet Historique affiche : cartes révisées, série en cours et record, meilleur jour, 7 et 30 derniers jours, graphique, calendrier, temps moyen par jour (par jour révisé, 60 s max par carte), taux de réussite (réponses hors « Oublié ») et répartition Oublié / Difficile / Bien / Facile. Il se remplit à partir de la première carte révisée après la mise à jour.
 
+## Écriture
+L'onglet Écriture fait tracer les caractères du deck (ou du tag) choisi, un caractère à la fois (les mots de plusieurs caractères sont découpés).
+- **Apprentissage** : le caractère est en filigrane, l'ordre des traits est animé, puis tu traces. Après une erreur, le bon trait clignote.
+- **Sans modèle** : aucun fond, tu écris de mémoire. Consulter « Ordre des traits » plafonne la note à « Moyen ».
+- **Notes** : 🌟 Parfait (0 erreur) · 👍 Bien (≤ 15 % de traits ratés) · 😐 Moyen (≤ 50 %) · 🔁 À refaire. Un trait faux 3 fois est validé d'office et compte comme erreur.
+- Les caractères les moins bien réussis reviennent en premier. Tolérance réglable (Stricte / Normale / Souple).
+- Les données de tracé sont chargées depuis jsDelivr (hanzi-writer-data 2.0.1) et gardées en cache : un caractère vu une fois marche ensuite hors ligne.
+
+## Crédits
+Tracés : [Hanzi Writer](https://hanziwriter.org) (MIT, fichier dans `vendor/`) et données Make Me a Hanzi (Arphic Public License).
+
 ## Notes
 - La progression est stockée dans le navigateur de l'iPhone : fais un export JSON de temps en temps (Réglages).
 - L'audio utilise la voix mandarin de l'iPhone (zh-TW). Si elle manque : Réglages iOS → Accessibilité → Contenu énoncé → Voix → Chinois → Taïwan.

@@ -97,8 +97,8 @@ function rate(r){
 /* ---------- Vues ---------- */
 function render(){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
-  $('nav').style.display=sess?'none':'';
-  sess?review():({home:homeV,cards:listV,stats:statsV,settings:setV})[tab]();
+  $('nav').style.display=sess||W?'none':'';
+  sess?review():W?writeS():({home:homeV,cards:listV,write:writeV,stats:statsV,settings:setV})[tab]();
 }
 function review(anim){
   if(!sess.q.length)return endV();
@@ -151,7 +151,7 @@ function setV(){
 async function reload(){$('#view').innerHTML='<p class=mu>Chargement…</p>';await load();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='hanzi-progress-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
 async function imp(f){if(!f)return;try{const o=JSON.parse(await f.text());if(!o.c)throw 0;S={size:50,auto:true,...o};save();render();alert('Sauvegarde importée')}catch(e){alert('Fichier invalide')}}
-function rst(){if(confirm('Effacer la progression, l\'historique et les tags ajoutés ?')){S.c={};S.h={};save();render()}}
+function rst(){if(confirm('Effacer la progression, l\'historique et les tags ajoutés ?')){S.c={};S.h={};S.w={};save();render()}}
 
 
 /* ---------- Historique ---------- */
@@ -202,8 +202,93 @@ function statsV(){
   $('#view').scrollTop=sc;
 }
 
+
+/* ---------- Écriture des caractères (Hanzi Writer) ---------- */
+const HWV='2.0.1',LV=[['À refaire','--gF','🔁'],['Moyen','--gD','😐'],['Bien','--gB','👍'],['Parfait','--gA','🌟']];
+const hwURL=c=>`https://cdn.jsdelivr.net/npm/hanzi-writer-data@${HWV}/${encodeURIComponent(c)}.json`;
+const hwLoad=(c,ok,err)=>fetch(hwURL(c)).then(r=>r.ok?r.json():Promise.reject()).then(ok).catch(err);
+const han=s=>[...s].filter(ch=>/\p{Script=Han}/u.test(ch));
+let W=null,wr=null;
+function fsel(fn){
+  const decks=[...new Set(cards.map(c=>c.deck))],tags=[...new Set(cards.flatMap(tg))].sort();
+  const op=(a,s,all)=>`<option value="">${all}</option>`+a.map(x=>`<option${x===s?' selected':''}>${esc(x)}</option>`).join('');
+  return `<div class=row><select onchange="filt.deck=this.value;${fn}()">${op(decks,filt.deck,'Tous les decks')}</select><select onchange="filt.tag=this.value;${fn}()">${op(tags,filt.tag,'Tous les tags')}</select></div>`;
+}
+function writeV(){
+  const m=S.wm||1,cnt=new Set(vis().flatMap(c=>han(c.hanzi))).size;
+  const sg=(k,o,d)=>`<div class=seg>${o.map(([v,t])=>`<button class="${(S[k]||d)===v?'on':''}" onclick="S.${k}=${v};save();writeV()">${t}</button>`).join('')}</div>`;
+  $('#view').innerHTML=`<h1>Écriture</h1><p class=mu>Trace chaque caractère trait par trait, au doigt ou à l'Apple Pencil.</p>`+(!cards.length?'':
+  `<h3>Mode</h3>${sg('wm',[[1,'Apprentissage'],[2,'Sans modèle']],1)}
+  <p class=mu style="margin:8px 2px 0">${m===1?'Le caractère est en filigrane et l\'ordre des traits est animé avant que tu traces.':'Aucun modèle : tu écris de mémoire. L\'ordre des traits est quand même vérifié.'}</p>
+  ${fsel('writeV')}
+  <h3>Caractères par session</h3>${sg('wn',[[10,'10'],[20,'20'],[30,'30']],10)}
+  <h3>Tolérance du tracé</h3>${sg('tol',[[.8,'Stricte'],[1,'Normale'],[1.3,'Souple']],1)}
+  <button class=go onclick="wStart()">Commencer (${Math.min(S.wn||10,cnt)} caractères)</button>`);
+}
+function wStart(){
+  const seen=new Map();
+  vis().forEach(c=>{const hs=han(c.hanzi);hs.forEach((ch,i)=>{if(!seen.has(ch))seen.set(ch,{ch,c,i,n:hs.length})})});
+  const it=shuf([...seen.values()]).sort((a,b)=>((S.w||{})[a.ch]??-1)-((S.w||{})[b.ch]??-1)).slice(0,S.wn||10);
+  if(!it.length)return;
+  it.forEach(x=>fetch(hwURL(x.ch)).catch(()=>{})); // préchargement : sert aussi de cache hors ligne
+  sess=null;W={it,i:0,res:[],mode:S.wm||1};render();
+}
+function wQuit(){W=null;wr=null;render()}
+function wNext(){W.i++;writeS()}
+function writeS(){
+  if(W.i>=W.it.length)return wEnd();
+  const x=W.it[W.i],sz=Math.round(Math.max(220,Math.min(innerWidth-32,innerHeight-340,520)));
+  const sy=s=>{const a=(s||'').trim().split(/\s+/);return a.length===x.n?a[x.i]:s};
+  const word=[...x.c.hanzi].map(ch=>ch===x.ch?`<u>${esc(ch)}</u>`:esc(ch)).join('');
+  $('#view').innerHTML=`<div class=rv><div class=top><button class=x onclick="wQuit()">✕</button><div class=bar><i style="width:${W.i/W.it.length*100}%"></i></div><span>${W.i}/${W.it.length}</span></div>
+  <div class=wwrap><div class=wh style="width:${sz}px"><div><b>${esc(sy(x.c.pinyin))}</b><span>${esc(sy(x.c.zhuyin))}</span></div>${x.n>1?`<div class=cw>${word}</div>`:''}</div>
+  <div class=wbox style="width:${sz}px;height:${sz}px"><svg class=wgrid viewBox="0 0 100 100" preserveAspectRatio="none"><rect x=.5 y=.5 width=99 height=99 /><path d="M50 0V100M0 50H100M0 0L100 100M100 0L0 100"/></svg><div id=wc></div></div>
+  <div id=wres style="width:100%;display:flex;justify-content:center"></div></div>
+  <div class=wbtn><button onclick="wOrder()">▶ Ordre des traits</button><button onclick="wRetry()">↺ Recommencer</button></div></div>`;
+  wInit(sz);
+}
+function wInit(sz){
+  const x=W.it[W.i],dm=matchMedia('(prefers-color-scheme: dark)').matches;
+  W.n=0;W.peek=false;W.done=false;
+  wr=HanziWriter.create('wc',x.ch,{width:sz,height:sz,padding:Math.round(sz*.08),showCharacter:false,showOutline:W.mode===1,
+    strokeColor:dm?'#e5e9f5':'#14213d',outlineColor:dm?'#454b5c':'#c9d0de',drawingColor:dm?'#ffffff':'#14213d',highlightColor:'#7f9cf5',
+    strokeAnimationSpeed:1.4,delayBetweenStrokes:250,leniency:S.tol||1,showHintAfterMisses:W.mode===1?1:false,markStrokeCorrectAfterMisses:3,
+    charDataLoader:hwLoad,
+    onLoadCharDataError:()=>{$('#wres').innerHTML='<div class=wr style="--c:var(--gD)"><b>Caractère indisponible</b><span>Données non chargées (connexion ?).</span><button class=go onclick="wNext()">Passer</button></div>'}});
+  W.mode===1?wOrder():wQuiz();
+}
+function wQuiz(){
+  W.n=0;wr.cancelQuiz();
+  wr.quiz({onCorrectStroke:()=>W.n++,onComplete:d=>wDone(d.totalMistakes)});
+}
+function wOrder(){
+  if(W.done)return;
+  if(W.mode===2)W.peek=true; // consulter l'ordre sans modèle plafonne la note
+  wr.cancelQuiz();
+  wr.animateCharacter({onComplete:()=>{if(!W.done)wQuiz()}});
+}
+function wRetry(){
+  if(W.done){W.res.pop();W.done=false;$('#wres').innerHTML=''}
+  wQuiz();
+}
+function wDone(m){
+  W.done=true;const n=Math.max(W.n,1),x=W.it[W.i];
+  let l=m===0?3:m<=Math.ceil(n*.15)?2:m<=Math.ceil(n*.5)?1:0;
+  if(W.peek)l=Math.min(l,1);
+  W.res.push({ch:x.ch,l,m});(S.w||(S.w={}))[x.ch]=l;save();
+  $('#wres').innerHTML=`<div class=wr style="--c:var(${LV[l][1]})"><b>${LV[l][2]} ${LV[l][0]}</b><span>${m?m+' erreur'+(m>1?'s':''):'Aucune erreur'} · ${n} trait${n>1?'s':''}${W.peek?' · ordre consulté':''}</span><button class=go onclick="wNext()">${W.i+1<W.it.length?'Suivant':'Terminer'}</button></div>`;
+}
+function wEnd(){
+  const r=W.res,c=[0,0,0,0];r.forEach(x=>c[x.l]++);
+  $('#view').innerHTML=`<div class=rv><div class=top><button class=x onclick="wQuit()">✕</button><div class=bar><i style="width:100%"></i></div><span>${r.length}/${W.it.length}</span></div>
+  <h1 style="margin-top:24px">完成</h1>
+  <div class=ql>${[3,2,1,0].map(l=>`<div><i style="background:var(${LV[l][1]})"></i>${LV[l][0]} · ${c[l]}</div>`).join('')}</div>
+  <div class=wgs>${r.map(x=>`<span style="--c:var(${LV[x.l][1]})">${esc(x.ch)}</span>`).join('')}</div>
+  <button class=go onclick="wQuit()">Retour</button></div>`;
+}
+
 /* ---------- Démarrage ---------- */
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sess=null;render()});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sess=null;W=null;wr=null;render()});
 $('#view').innerHTML='<p class=mu>Chargement…</p>';
 load().then(render);
 window.speechSynthesis?.getVoices();
