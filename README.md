@@ -24,6 +24,9 @@ Format (UTF-8, première ligne = en-têtes) :
 Nouveau → F (oublié) · E · D · C · B · A (maîtrisé). Prochaine révision : F ≈ 10 min, E 1 j, D 3 j, C 7 j, B 14 j, A 30 j.
 Oublié → F · Difficile → −1 · Bien → +1 · Facile → +2 (une carte nouvelle démarre à F/E/D/B).
 
+## Historique
+L'onglet Historique affiche : cartes révisées, série en cours et record, meilleur jour, 7 et 30 derniers jours, graphique, calendrier, temps moyen par jour (par jour révisé, 60 s max par carte), taux de réussite (réponses hors « Oublié ») et répartition Oublié / Difficile / Bien / Facile. Il se remplit à partir de la première carte révisée après la mise à jour.
+
 ## Notes
 - La progression est stockée dans le navigateur de l'iPhone : fais un export JSON de temps en temps (Réglages).
 - L'audio utilise la voix mandarin de l'iPhone (zh-TW). Si elle manque : Réglages iOS → Accessibilité → Contenu énoncé → Voix → Chinois → Taïwan.

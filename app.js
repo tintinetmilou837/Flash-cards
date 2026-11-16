@@ -3,7 +3,9 @@ const KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=86
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S=JSON.parse(localStorage.getItem(KEY)||'null')||{c:{},size:50,auto:true};
-let cards=[],tab='home',filt={deck:'',tag:''},sess=null,qs='';
+let cards=[],tab='home',filt={deck:'',tag:''},sess=null,qs='',calM=null,chartN=7;
+const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
 const stt=c=>S.c[c.id]||{l:null,due:0,n:0,tags:[]};
 const ens=c=>S.c[c.id]||(S.c[c.id]={l:null,due:0,n:0,tags:[]});
@@ -80,12 +82,14 @@ function pick(){
   const rest=v.filter(c=>{const s=stt(c);return s.l!=null&&s.due>now}).sort((a,b)=>stt(a).due-stt(b).due);
   return shuf([...due,...nw,...rest].slice(0,S.size));
 }
-function start(){const q=pick();if(!q.length)return;sess={q,total:q.length,done:0,flip:false,rq:new Set()};render()}
+function start(){const q=pick();if(!q.length)return;sess={q,total:q.length,done:0,flip:false,rq:new Set(),t0:Date.now()};render()}
 function quit(){sess=null;render()}
 function flip(){sess.flip=true;if(S.auto)speak(cards.indexOf(sess.q[0]));review(1)}
 function rate(r){
   const c=sess.q.shift(),s=ens(c);
-  s.l=nl(s.l,r);s.due=Date.now()+IV[s.l]*DAY;s.n++;save();
+  s.l=nl(s.l,r);s.due=Date.now()+IV[s.l]*DAY;s.n++;
+  const now=Date.now(),h=S.h||(S.h={}),e=h[dk(now)]||(h[dk(now)]={n:0,a:[0,0,0,0],ms:0});
+  e.n++;e.a[r]++;e.ms+=Math.min(now-sess.t0,6e4);sess.t0=now;save();
   if(r===0&&!sess.rq.has(c.id)){sess.rq.add(c.id);sess.q.push(c)}else sess.done++;
   sess.flip=false;render();
 }
@@ -94,7 +98,7 @@ function rate(r){
 function render(){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   $('nav').style.display=sess?'none':'';
-  sess?review():({home:homeV,cards:listV,settings:setV})[tab]();
+  sess?review():({home:homeV,cards:listV,stats:statsV,settings:setV})[tab]();
 }
 function review(anim){
   if(!sess.q.length)return endV();
@@ -142,12 +146,61 @@ function setV(){
   <h3>Sauvegarde de la progression</h3>
   <button class=btn onclick="exp()">Exporter (fichier JSON)</button>
   <label class=btn>Importer une sauvegarde<input type=file accept=".json,application/json" hidden onchange="imp(this.files[0])"></label>
-  <button class=btn style="color:var(--gF)" onclick="rst()">Réinitialiser progression et tags ajoutés</button>`;
+  <button class=btn style="color:var(--gF)" onclick="rst()">Tout réinitialiser (progression, historique, tags)</button>`;
 }
 async function reload(){$('#view').innerHTML='<p class=mu>Chargement…</p>';await load();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='hanzi-progress-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
 async function imp(f){if(!f)return;try{const o=JSON.parse(await f.text());if(!o.c)throw 0;S={size:50,auto:true,...o};save();render();alert('Sauvegarde importée')}catch(e){alert('Fichier invalide')}}
-function rst(){if(confirm('Effacer toute la progression et les tags ajoutés ?')){S.c={};save();render()}}
+function rst(){if(confirm('Effacer la progression, l\'historique et les tags ajoutés ?')){S.c={};S.h={};save();render()}}
+
+
+/* ---------- Historique ---------- */
+function calGo(n){let m=calM.m+n,y=calM.y;if(m<0){m=11;y--}if(m>11){m=0;y++}calM={y,m};statsV()}
+function statsV(){
+  const sc=$('#view').scrollTop,h=S.h||{},keys=Object.keys(h).sort(),now=new Date();
+  const dn=d=>(h[dk(d)]||{}).n||0,sum=n=>{let t=0;for(let i=0;i<n;i++)t+=dn(addD(now,-i));return t};
+  const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+  const fd=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  const tot=keys.reduce((s,k)=>s+h[k].n,0),q=[0,0,0,0];
+  keys.forEach(k=>h[k].a.forEach((v,i)=>q[i]+=v));
+  const ms=keys.reduce((s,k)=>s+h[k].ms,0),avg=keys.length?ms/keys.length/6e4:0;
+  let cur=0,d=new Date(now);if(!dn(d))d=addD(d,-1);while(dn(d)){cur++;d=addD(d,-1)}
+  let best=0,run=0,prev=null;
+  keys.forEach(k=>{if(!h[k].n)return;const dt=kd(k);run=prev&&dk(addD(prev,1))===k?run+1:1;prev=dt;if(run>best)best=run});
+  const bk=keys.reduce((b,k)=>!b||h[k].n>h[b].n?k:b,null);
+  const bars=[];for(let i=chartN-1;i>=0;i--){const dt=addD(now,-i);bars.push([dt,dn(dt)])}
+  const mx=Math.max(1,...bars.map(b=>b[1]));
+  if(!calM)calM={y:now.getFullYear(),m:now.getMonth()};
+  const off=(new Date(calM.y,calM.m,1).getDay()+6)%7,nd=new Date(calM.y,calM.m+1,0).getDate(),hm=Math.max(1,...keys.map(k=>h[k].n));
+  const atNow=calM.y===now.getFullYear()&&calM.m===now.getMonth();
+  let cells='';for(let i=0;i<off;i++)cells+='<div></div>';
+  for(let i=1;i<=nd;i++){const k=dk(new Date(calM.y,calM.m,i)),n=(h[k]||{}).n||0,lv=n?Math.ceil(n/hm*4):0;
+    cells+=`<div class="d l${lv}${k===dk(now)?' td':''}"${lv?` style="background:color-mix(in srgb,var(--ac) ${lv*25}%,var(--cd))"`:''}>${i}${n?`<small>${n}</small>`:''}</div>`}
+  const qc=['--gF','--gD','--gB','--gA'],ql=['Oublié','Difficile','Bien','Facile'];
+  const fm=m=>m<1?Math.round(m*60)+' s':Math.round(m)+' min';
+  $('#view').innerHTML=`<h1>Historique</h1>
+  <div class=grid2>
+    <div class="st w"><span>Cartes révisées</span><b>${tot}</b></div>
+    <div class=st><span>Série en cours</span><b>${cur} j</b><small>record : ${best} j</small></div>
+    <div class=st><span>Meilleur jour</span><b>${bk?h[bk].n:0}</b><small>${bk?fd(kd(bk)):'–'}</small></div>
+    <div class=st><span>7 derniers jours</span><b>${sum(7)}</b></div>
+    <div class=st><span>30 derniers jours</span><b>${sum(30)}</b></div>
+  </div>
+  <div class=pn><div class=hd><span>Cartes par jour</span><div class="seg s">${[7,30].map(x=>`<button class="${chartN===x?'on':''}" onclick="chartN=${x};statsV()">${x} j</button>`).join('')}</div></div>
+    <div class=chart>${bars.map(([dt,n],i)=>`<div class=col><i${i===bars.length-1?' class=t':''} style="height:${n/mx*100}%"></i></div>`).join('')}</div>
+    <div class=ax><span>${fd(bars[0][0])}</span><span>max ${mx}</span><span>aujourd'hui</span></div></div>
+  <div class=pn><div class=hd><button class=nav2 onclick="calGo(-1)">‹</button><span style="text-transform:capitalize">${new Date(calM.y,calM.m,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</span><button class=nav2 style="${atNow?'visibility:hidden':''}" onclick="calGo(1)">›</button></div>
+    <div class=cal>${['L','M','M','J','V','S','D'].map(x=>`<div class=wd>${x}</div>`).join('')}${cells}</div></div>
+  <div class=grid2>
+    <div class=st><span>Temps moyen par jour</span><b>${keys.length?fm(avg):'–'}</b><small>${keys.length} jour${keys.length>1?'s':''} révisé${keys.length>1?'s':''}</small></div>
+    <div class=st><span>Taux de réussite</span><b>${tot?Math.round((tot-q[0])/tot*100)+' %':'–'}</b><small>réponses hors « Oublié »</small></div>
+  </div>
+  <div class=pn><div class=hd><span>Qualité des réponses</span></div>
+    <div class=qb>${tot?q.map((v,i)=>`<i style="width:${v/tot*100}%;background:var(${qc[i]})"></i>`).join(''):''}</div>
+    <div class=ql>${ql.map((t,i)=>`<div><i style="background:var(${qc[i]})"></i>${t} · ${q[i]}${tot?` (${Math.round(q[i]/tot*100)} %)`:''}</div>`).join('')}</div></div>
+  ${tot?'':'<p class=mu>L\'historique se remplit à chaque carte révisée.</p>'}`;
+  $('#view').scrollTop=sc;
+}
 
 /* ---------- Démarrage ---------- */
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sess=null;render()});
