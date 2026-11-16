@@ -98,3 +98,7 @@ select,input[type=search]{width:100%;padding:12px;border:0;border-radius:12px;ba
 .wr .go{margin-top:12px;padding:12px}
 .wgs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
 .wgs span{min-width:54px;padding:6px 10px;border-radius:12px;color:#fff;font:28px "Songti TC","Noto Serif TC",serif;text-align:center;background:var(--c)}
+.dks{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.dk{border:0;border-radius:14px;padding:8px 14px;background:var(--cd);color:var(--tx);font-size:15px}
+.dk.on{background:var(--ac);color:#fff}
+@media(prefers-color-scheme:dark){.dk.on{color:#000}}

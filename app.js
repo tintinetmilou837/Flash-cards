@@ -3,7 +3,7 @@ const KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=86
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S=JSON.parse(localStorage.getItem(KEY)||'null')||{c:{},size:50,auto:true};
-let cards=[],tab='home',filt={deck:'',tag:''},sess=null,qs='',calM=null,chartN=7;
+let cards=[],tab='home',filt={tag:''},sess=null,qs='',calM=null,chartN=7;
 const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
@@ -11,7 +11,17 @@ const stt=c=>S.c[c.id]||{l:null,due:0,n:0,tags:[]};
 const ens=c=>S.c[c.id]||(S.c[c.id]={l:null,due:0,n:0,tags:[]});
 const gl=c=>{const l=stt(c).l;return l==null?'N':GR[l]};
 const tg=c=>[...new Set([...c.tags,...(stt(c).tags||[])])];
-const vis=()=>cards.filter(c=>(!filt.deck||c.deck===filt.deck)&&(!filt.tag||tg(c).includes(filt.tag)));
+const decksL=()=>[...new Set(cards.map(c=>c.deck))];
+const act=()=>{const d=decksL();return (S.fd||[]).filter(x=>d.includes(x))};
+const vis=()=>{const a=act();return cards.filter(c=>(!a.length||a.includes(c.deck))&&(!filt.tag||tg(c).includes(filt.tag)))};
+function tdeck(i){const d=decksL()[i],a=act(),k=a.indexOf(d);k<0?a.push(d):a.splice(k,1);S.fd=a;save();render()}
+function alldecks(){S.fd=[];save();render()}
+function fsel(){
+  const a=act(),dl=decksL(),base=cards.filter(c=>!a.length||a.includes(c.deck)),tags=[...new Set(base.flatMap(tg))].sort();
+  if(filt.tag&&!tags.includes(filt.tag))filt.tag='';
+  return `<h3>Decks à réviser</h3><div class=dks><button class="dk${a.length?'':' on'}" onclick="alldecks()">Tous</button>${dl.map((d,i)=>`<button class="dk${a.includes(d)?' on':''}" onclick="tdeck(${i})">${esc(d)} · ${cards.filter(c=>c.deck===d).length}</button>`).join('')}</div>
+  <div class=row><select onchange="filt.tag=this.value;render()"><option value="">Tous les tags</option>${tags.map(x=>`<option${x===filt.tag?' selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+}
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 // niveau suivant : r = 0 oublié, 1 difficile, 2 bien, 3 facile (0..5 = F..A)
 const nl=(l,r)=>r===0?0:l==null?[0,1,2,4][r]:Math.max(0,Math.min(5,l+[0,-1,1,2][r]));
@@ -115,13 +125,11 @@ function endV(){
 function homeV(){
   const v=vis(),now=Date.now(),n={N:0,A:0,B:0,C:0,D:0,E:0,F:0};let due=0;
   v.forEach(c=>{n[gl(c)]++;const s=stt(c);if(s.l!=null&&s.due<=now)due++});
-  const decks=[...new Set(cards.map(c=>c.deck))],tags=[...new Set(cards.flatMap(tg))].sort();
-  const op=(a,s,all)=>`<option value="">${all}</option>`+a.map(x=>`<option${x===s?' selected':''}>${esc(x)}</option>`).join('');
   $('#view').innerHTML=`<h1>漢字卡</h1>`+(!cards.length
     ?`<p class=mu>Aucune carte chargée. Ajoute un fichier .csv dans le dossier decks/ du dépôt GitHub, puis va dans Réglages → Recharger.</p>`
     :`<div class=tiles>${['N','A','B','C','D','E','F'].map(k=>`<div class="tile g${k}"><b>${n[k]}</b><span>${k==='N'?'Nouveau':k}</span></div>`).join('')}</div>
     <p class=mu style="margin:10px 2px 0">${due} à revoir aujourd'hui · ${v.length} cartes</p>
-    <div class=row><select onchange="filt.deck=this.value;homeV()">${op(decks,filt.deck,'Tous les decks')}</select><select onchange="filt.tag=this.value;homeV()">${op(tags,filt.tag,'Tous les tags')}</select></div>
+    ${fsel()}
     <h3>Cartes par session</h3>
     <div class=seg>${[50,80,100].map(x=>`<button class="${S.size===x?'on':''}" onclick="S.size=${x};save();homeV()">${x}</button>`).join('')}</div>
     <button class=go onclick="start()">Commencer (${Math.min(S.size,v.length)} cartes)</button>`);
@@ -212,18 +220,13 @@ const hwURL=c=>`https://cdn.jsdelivr.net/npm/hanzi-writer-data@${HWV}/${encodeUR
 const hwLoad=(c,ok,err)=>fetch(hwURL(c)).then(r=>r.ok?r.json():Promise.reject()).then(ok).catch(err);
 const han=s=>[...s].filter(ch=>/\p{Script=Han}/u.test(ch));
 let W=null,wr=null;
-function fsel(fn){
-  const decks=[...new Set(cards.map(c=>c.deck))],tags=[...new Set(cards.flatMap(tg))].sort();
-  const op=(a,s,all)=>`<option value="">${all}</option>`+a.map(x=>`<option${x===s?' selected':''}>${esc(x)}</option>`).join('');
-  return `<div class=row><select onchange="filt.deck=this.value;${fn}()">${op(decks,filt.deck,'Tous les decks')}</select><select onchange="filt.tag=this.value;${fn}()">${op(tags,filt.tag,'Tous les tags')}</select></div>`;
-}
 function writeV(){
   const m=S.wm||1,cnt=new Set(vis().flatMap(c=>han(c.hanzi))).size;
   const sg=(k,o,d)=>`<div class=seg>${o.map(([v,t])=>`<button class="${(S[k]||d)===v?'on':''}" onclick="S.${k}=${v};save();writeV()">${t}</button>`).join('')}</div>`;
   $('#view').innerHTML=`<h1>Écriture</h1><p class=mu>Trace chaque caractère trait par trait, au doigt ou à l'Apple Pencil.</p>`+(!cards.length?'':
   `<h3>Mode</h3>${sg('wm',[[1,'Apprentissage'],[2,'Sans modèle']],1)}
   <p class=mu style="margin:8px 2px 0">${m===1?'Le caractère est en filigrane et l\'ordre des traits est animé avant que tu traces.':'Aucun modèle : tu écris de mémoire. L\'ordre des traits est quand même vérifié.'}</p>
-  ${fsel('writeV')}
+  ${fsel()}
   <h3>Caractères par session</h3>${sg('wn',[[10,'10'],[20,'20'],[30,'30']],10)}
   <h3>Tolérance du tracé</h3>${sg('tol',[[.8,'Stricte'],[1,'Normale'],[1.3,'Souple']],1)}
   <button class=go onclick="wStart()">Commencer (${Math.min(S.wn||10,cnt)} caractères)</button>`);
