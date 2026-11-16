@@ -25,7 +25,7 @@ Nouveau → F (oublié) · E · D · C · B · A (maîtrisé). Prochaine révisi
 Oublié → F · Difficile → −1 · Bien → +1 · Facile → +2 (une carte nouvelle démarre à F/E/D/B).
 
 ## Historique
-L'onglet Historique affiche : cartes révisées, série en cours et record, meilleur jour, 7 et 30 derniers jours, graphique, calendrier, temps moyen par jour (par jour révisé, 60 s max par carte), taux de réussite (réponses hors « Oublié ») et répartition Oublié / Difficile / Bien / Facile. Il se remplit à partir de la première carte révisée après la mise à jour.
+L'onglet Historique a deux sous-onglets : **Flashcards** et **Écriture**, avec chacun ses propres statistiques (total, série, meilleur jour, 7/30 jours, graphique, calendrier, temps moyen par jour (par jour pratiqué ; 60 s max par carte, 3 min max par caractère), taux de réussite, qualité). Flashcards : le taux de réussite compte les réponses hors « Oublié ». Écriture : chaque tracé terminé compte (un « Recommencer » après un résultat compte comme un nouvel essai) et le taux de réussite = tracés Bien ou Parfait.
 
 ## Écriture
 L'onglet Écriture fait tracer les caractères du deck (ou du tag) choisi, un caractère à la fois (les mots de plusieurs caractères sont découpés).

@@ -151,13 +151,14 @@ function setV(){
 async function reload(){$('#view').innerHTML='<p class=mu>Chargement…</p>';await load();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='hanzi-progress-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
 async function imp(f){if(!f)return;try{const o=JSON.parse(await f.text());if(!o.c)throw 0;S={size:50,auto:true,...o};save();render();alert('Sauvegarde importée')}catch(e){alert('Fichier invalide')}}
-function rst(){if(confirm('Effacer la progression, l\'historique et les tags ajoutés ?')){S.c={};S.h={};S.w={};save();render()}}
+function rst(){if(confirm('Effacer la progression, l\'historique et les tags ajoutés ?')){S.c={};S.h={};S.hw={};S.w={};save();render()}}
 
 
-/* ---------- Historique ---------- */
+/* ---------- Historique (flashcards + écriture) ---------- */
+let hTab='c';
 function calGo(n){let m=calM.m+n,y=calM.y;if(m<0){m=11;y--}if(m>11){m=0;y++}calM={y,m};statsV()}
 function statsV(){
-  const sc=$('#view').scrollTop,h=S.h||{},keys=Object.keys(h).sort(),now=new Date();
+  const w=hTab==='w',sc=$('#view').scrollTop,h=(w?S.hw:S.h)||{},keys=Object.keys(h).sort(),now=new Date();
   const dn=d=>(h[dk(d)]||{}).n||0,sum=n=>{let t=0;for(let i=0;i<n;i++)t+=dn(addD(now,-i));return t};
   const kd=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
   const fd=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
@@ -176,32 +177,34 @@ function statsV(){
   let cells='';for(let i=0;i<off;i++)cells+='<div></div>';
   for(let i=1;i<=nd;i++){const k=dk(new Date(calM.y,calM.m,i)),n=(h[k]||{}).n||0,lv=n?Math.ceil(n/hm*4):0;
     cells+=`<div class="d l${lv}${k===dk(now)?' td':''}"${lv?` style="background:color-mix(in srgb,var(--ac) ${lv*25}%,var(--cd))"`:''}>${i}${n?`<small>${n}</small>`:''}</div>`}
-  const qc=['--gF','--gD','--gB','--gA'],ql=['Oublié','Difficile','Bien','Facile'];
-  const fm=m=>m<1?Math.round(m*60)+' s':Math.round(m)+' min';
+  const qc=['--gF','--gD','--gB','--gA'],ql=w?LV.map(x=>x[0]):['Oublié','Difficile','Bien','Facile'];
+  const ok=w?q[2]+q[3]:tot-q[0],fm=m=>m<1?Math.round(m*60)+' s':Math.round(m)+' min';
+  const wk=Object.values(S.w||{}),extra=w?`<div class="st w"><span>Caractères différents travaillés</span><b>${wk.length}</b><small>dont ${wk.filter(l=>l===3).length} notés Parfait au dernier essai · ${keys.reduce((s,k)=>s+(h[k].st||0),0)} traits tracés</small></div>`:'';
   $('#view').innerHTML=`<h1>Historique</h1>
+  <div class=seg style="margin-bottom:14px">${[['c','Flashcards'],['w','Écriture']].map(([k,t])=>`<button class="${hTab===k?'on':''}" onclick="hTab='${k}';$('#view').scrollTop=0;statsV()">${t}</button>`).join('')}</div>
   <div class=grid2>
-    <div class="st w"><span>Cartes révisées</span><b>${tot}</b></div>
+    <div class="st w"><span>${w?'Caractères tracés':'Cartes révisées'}</span><b>${tot}</b></div>
     <div class=st><span>Série en cours</span><b>${cur} j</b><small>record : ${best} j</small></div>
     <div class=st><span>Meilleur jour</span><b>${bk?h[bk].n:0}</b><small>${bk?fd(kd(bk)):'–'}</small></div>
     <div class=st><span>7 derniers jours</span><b>${sum(7)}</b></div>
     <div class=st><span>30 derniers jours</span><b>${sum(30)}</b></div>
   </div>
-  <div class=pn><div class=hd><span>Cartes par jour</span><div class="seg s">${[7,30].map(x=>`<button class="${chartN===x?'on':''}" onclick="chartN=${x};statsV()">${x} j</button>`).join('')}</div></div>
+  <div class=pn><div class=hd><span>${w?'Caractères par jour':'Cartes par jour'}</span><div class="seg s">${[7,30].map(x=>`<button class="${chartN===x?'on':''}" onclick="chartN=${x};statsV()">${x} j</button>`).join('')}</div></div>
     <div class=chart>${bars.map(([dt,n],i)=>`<div class=col><i${i===bars.length-1?' class=t':''} style="height:${n/mx*100}%"></i></div>`).join('')}</div>
     <div class=ax><span>${fd(bars[0][0])}</span><span>max ${mx}</span><span>aujourd'hui</span></div></div>
   <div class=pn><div class=hd><button class=nav2 onclick="calGo(-1)">‹</button><span style="text-transform:capitalize">${new Date(calM.y,calM.m,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</span><button class=nav2 style="${atNow?'visibility:hidden':''}" onclick="calGo(1)">›</button></div>
     <div class=cal>${['L','M','M','J','V','S','D'].map(x=>`<div class=wd>${x}</div>`).join('')}${cells}</div></div>
   <div class=grid2>
-    <div class=st><span>Temps moyen par jour</span><b>${keys.length?fm(avg):'–'}</b><small>${keys.length} jour${keys.length>1?'s':''} révisé${keys.length>1?'s':''}</small></div>
-    <div class=st><span>Taux de réussite</span><b>${tot?Math.round((tot-q[0])/tot*100)+' %':'–'}</b><small>réponses hors « Oublié »</small></div>
+    <div class=st><span>Temps moyen par jour</span><b>${keys.length?fm(avg):'–'}</b><small>${keys.length} jour${keys.length>1?'s':''} ${w?'pratiqué':'révisé'}${keys.length>1?'s':''}</small></div>
+    <div class=st><span>Taux de réussite</span><b>${tot?Math.round(ok/tot*100)+' %':'–'}</b><small>${w?'tracés Bien ou Parfait':'réponses hors « Oublié »'}</small></div>
+    ${extra}
   </div>
-  <div class=pn><div class=hd><span>Qualité des réponses</span></div>
+  <div class=pn><div class=hd><span>${w?'Qualité des tracés':'Qualité des réponses'}</span></div>
     <div class=qb>${tot?q.map((v,i)=>`<i style="width:${v/tot*100}%;background:var(${qc[i]})"></i>`).join(''):''}</div>
     <div class=ql>${ql.map((t,i)=>`<div><i style="background:var(${qc[i]})"></i>${t} · ${q[i]}${tot?` (${Math.round(q[i]/tot*100)} %)`:''}</div>`).join('')}</div></div>
-  ${tot?'':'<p class=mu>L\'historique se remplit à chaque carte révisée.</p>'}`;
+  ${tot?'':`<p class=mu>L'historique se remplit à chaque ${w?'caractère tracé':'carte révisée'}.</p>`}`;
   $('#view').scrollTop=sc;
 }
-
 
 /* ---------- Écriture des caractères (Hanzi Writer) ---------- */
 const HWV='2.0.1',LV=[['À refaire','--gF','🔁'],['Moyen','--gD','😐'],['Bien','--gB','👍'],['Parfait','--gA','🌟']];
@@ -258,7 +261,7 @@ function wInit(sz){
   W.mode===1?wOrder():wQuiz();
 }
 function wQuiz(){
-  W.n=0;wr.cancelQuiz();
+  W.n=0;W.t0=Date.now();wr.cancelQuiz();
   wr.quiz({onCorrectStroke:()=>W.n++,onComplete:d=>wDone(d.totalMistakes)});
 }
 function wOrder(){
@@ -275,7 +278,9 @@ function wDone(m){
   W.done=true;const n=Math.max(W.n,1),x=W.it[W.i];
   let l=m===0?3:m<=Math.ceil(n*.15)?2:m<=Math.ceil(n*.5)?1:0;
   if(W.peek)l=Math.min(l,1);
-  W.res.push({ch:x.ch,l,m});(S.w||(S.w={}))[x.ch]=l;save();
+  W.res.push({ch:x.ch,l,m});(S.w||(S.w={}))[x.ch]=l;
+  const now=Date.now(),hw=S.hw||(S.hw={}),e=hw[dk(now)]||(hw[dk(now)]={n:0,a:[0,0,0,0],ms:0,st:0});
+  e.n++;e.a[l]++;e.ms+=Math.min(now-W.t0,18e4);e.st+=n;save();
   $('#wres').innerHTML=`<div class=wr style="--c:var(${LV[l][1]})"><b>${LV[l][2]} ${LV[l][0]}</b><span>${m?m+' erreur'+(m>1?'s':''):'Aucune erreur'} · ${n} trait${n>1?'s':''}${W.peek?' · ordre consulté':''}</span><button class=go onclick="wNext()">${W.i+1<W.it.length?'Suivant':'Terminer'}</button></div>`;
 }
 function wEnd(){
