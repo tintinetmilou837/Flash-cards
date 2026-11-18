@@ -1,9 +1,9 @@
 'use strict';
-const KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
+const VER='v9 · 18 nov. 2026',KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S=JSON.parse(localStorage.getItem(KEY)||'null')||{c:{},size:50,auto:true};
-let cards=[],tab='home',filt={tag:''},sess=null,qs='',calM=null,chartN=7;
+let cards=[],tab='home',dd='',ddq='',sess=null,qs='',calM=null,chartN=7;
 const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
@@ -11,16 +11,32 @@ const stt=c=>S.c[c.id]||{l:null,due:0,n:0,tags:[]};
 const ens=c=>S.c[c.id]||(S.c[c.id]={l:null,due:0,n:0,tags:[]});
 const gl=c=>{const l=stt(c).l;return l==null?'N':GR[l]};
 const tg=c=>[...new Set([...c.tags,...(stt(c).tags||[])])];
-const decksL=()=>[...new Set(cards.map(c=>c.deck))];
+const pl=(n,w)=>n+' '+w+(n>1?'s':'');
+const collate=(x,y)=>x.localeCompare(y,'fr',{numeric:true});
+const decksL=()=>[...new Set(cards.map(c=>c.deck))].sort(collate);
 const act=()=>{const d=decksL();return (S.fd||[]).filter(x=>d.includes(x))};
-const vis=()=>{const a=act();return cards.filter(c=>(!a.length||a.includes(c.deck))&&(!filt.tag||tg(c).includes(filt.tag)))};
-function tdeck(i){const d=decksL()[i],a=act(),k=a.indexOf(d);k<0?a.push(d):a.splice(k,1);S.fd=a;save();render()}
-function alldecks(){S.fd=[];save();render()}
+const tagsAll=()=>{const a=act();return [...new Set(cards.filter(c=>!a.length||a.includes(c.deck)).flatMap(tg))].sort(collate)};
+const actT=()=>{const t=tagsAll();return (S.ft||[]).filter(x=>t.includes(x))};
+const vis=()=>{const a=act(),t=actT();return cards.filter(c=>(!a.length||a.includes(c.deck))&&(!t.length||tg(c).some(x=>t.includes(x))))};
+/* menus déroulants à cases à cocher (decks / tags) : plusieurs choix = « ou » */
+function rr(){const l=$('#ddl'),s=l?l.scrollTop:0,v=$('#view').scrollTop;render();const n=$('#ddl');if(n)n.scrollTop=s;$('#view').scrollTop=v}
+function ddSet(k){dd=dd===k?'':k;ddq='';render()}
+function ddItems(){
+  const d=dd==='d',list=d?decksL():tagsAll(),cnt={},q=ddq.trim().toLowerCase(),a=act();
+  (d?cards:cards.filter(c=>!a.length||a.includes(c.deck))).forEach(c=>(d?[c.deck]:tg(c)).forEach(x=>cnt[x]=(cnt[x]||0)+1));
+  return list.map((v,i)=>[v,i,cnt[v]||0]).filter(x=>!q||x[0].toLowerCase().includes(q));
+}
+function ddList(){
+  const sel=dd==='d'?act():actT(),it=ddItems();
+  return it.map(([v,i,n])=>`<label class=ck><input type=checkbox ${sel.includes(v)?'checked':''} onchange="ddToggle(${i})"><span>${esc(v)}</span><small>${n}</small></label>`).join('')||'<p class=mu style="padding:8px">Aucun résultat</p>';
+}
+function ddFill(){$('#ddl').innerHTML=ddList()}
+function ddToggle(i){const d=dd==='d',v=(d?decksL():tagsAll())[i],a=d?act():actT(),j=a.indexOf(v);j<0?a.push(v):a.splice(j,1);S[d?'fd':'ft']=a;save();rr()}
+function ddAll(on){const d=dd==='d',cur=d?act():actT();S[d?'fd':'ft']=on?[...new Set([...cur,...ddItems().map(x=>x[0])])]:[];save();rr()}
 function fsel(){
-  const a=act(),dl=decksL(),base=cards.filter(c=>!a.length||a.includes(c.deck)),tags=[...new Set(base.flatMap(tg))].sort();
-  if(filt.tag&&!tags.includes(filt.tag))filt.tag='';
-  return `<h3>Decks à réviser</h3><div class=dks><button class="dk${a.length?'':' on'}" onclick="alldecks()">Tous</button>${dl.map((d,i)=>`<button class="dk${a.includes(d)?' on':''}" onclick="tdeck(${i})">${esc(d)} · ${cards.filter(c=>c.deck===d).length}</button>`).join('')}</div>
-  <div class=row><select onchange="filt.tag=this.value;render()"><option value="">Tous les tags</option>${tags.map(x=>`<option${x===filt.tag?' selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+  const a=act(),t=actT(),sm=(l,one,all,n)=>l.length?(l.length===1?esc(l[0]):l.length+' '+n):all;
+  const btn=(k,txt)=>`<button class="ddb${dd===k?' op':''}" onclick="ddSet('${k}')"><span>${txt}</span><i>${dd===k?'▲':'▼'}</i></button>`;
+  return `<h3>Filtres</h3><div class=row>${btn('d',sm(a,0,'Tous les decks','decks'))}${btn('t',sm(t,0,'Tous les tags','tags'))}</div>`+(dd?`<div class=ddp><input type=search placeholder="Rechercher…" value="${esc(ddq)}" oninput="ddq=this.value;ddFill()"><div class=dda><button onclick="ddAll(1)">Tout cocher</button><button onclick="ddAll(0)">Tout décocher</button></div><div id=ddl>${ddList()}</div></div>`:'');
 }
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 // niveau suivant : r = 0 oublié, 1 difficile, 2 bien, 3 facile (0..5 = F..A)
@@ -41,14 +57,15 @@ function parseCSV(t){
   if(f||r.length){r.push(f);rows.push(r)}
   return rows.filter(r=>r.some(x=>x.trim()));
 }
-const H={hanzi:['hanzi','caractere','caractère','character','word','mot','漢字','字'],pinyin:['pinyin','拼音'],zhuyin:['zhuyin','bopomofo','注音'],tags:['tags','tag','etiquettes','étiquettes'],meaning:['meaning','sens','traduction','translation']};
+const H={hanzi:['hanzi','chinese','chinois','caractere','caractère','character','characters','word','mot','漢字','汉字','中文','字'],pinyin:['pinyin','拼音'],zhuyin:['zhuyin','bopomofo','注音'],tags:['tags','tag','lesson','leçon','lecon','unit','category','catégorie','categorie','etiquettes','étiquettes'],meaning:['meaning','english','anglais','definition','définition','translation','traduction','sens','français','francais','french','gloss']};
 function toCards(rows,deck){
   const h=rows[0].map(x=>x.trim().toLowerCase()),ix={};let hasH=false;
   for(const k in H){const i=h.findIndex(x=>H[k].includes(x));if(i>=0){ix[k]=i;hasH=true}}
   if(!hasH)Object.assign(ix,{hanzi:0,pinyin:1,zhuyin:2,tags:3,meaning:4});
   if(ix.hanzi==null)ix.hanzi=0;
+  const les=/^(lesson|leçon|lecon|unit)$/.test(h[ix.tags]??''),tv=v=>les&&/^\d+$/.test(v)?h[ix.tags]+' '+v:v; // colonne « Lesson » = 9 → tag « lesson 9 »
   return (hasH?rows.slice(1):rows).map(r=>{const g=k=>(r[ix[k]]??'').trim();
-    return {id:deck+'/'+g('hanzi'),deck,hanzi:g('hanzi'),pinyin:g('pinyin'),zhuyin:g('zhuyin'),meaning:g('meaning'),tags:g('tags').split(/[;|]/).map(x=>x.trim()).filter(Boolean)}}).filter(c=>c.hanzi);
+    return {id:deck+'/'+g('hanzi'),deck,hanzi:g('hanzi'),pinyin:g('pinyin'),zhuyin:g('zhuyin'),meaning:g('meaning'),tags:tv(g('tags')).split(/[;|]/).map(x=>x.trim()).filter(Boolean)}}).filter(c=>c.hanzi);
 }
 
 /* ---------- Chargement des decks ---------- */
@@ -92,7 +109,7 @@ function pick(){
   const rest=v.filter(c=>{const s=stt(c);return s.l!=null&&s.due>now}).sort((a,b)=>stt(a).due-stt(b).due);
   return shuf([...due,...nw,...rest].slice(0,S.size));
 }
-function start(){const q=pick();if(!q.length)return;sess={q,total:q.length,done:0,flip:false,rq:new Set(),t0:Date.now()};render()}
+function start(){const q=pick();if(!q.length)return;dd='';sess={q,total:q.length,done:0,flip:false,rq:new Set(),t0:Date.now()};render()}
 function quit(){sess=null;render()}
 function flip(){sess.flip=true;if(S.auto)speak(cards.indexOf(sess.q[0]));review(1)}
 function rate(r){
@@ -110,13 +127,14 @@ function render(){
   $('nav').style.display=sess||W?'none':'';
   sess?review():W?writeS():({home:homeV,cards:listV,write:writeV,stats:statsV,settings:setV})[tab]();
 }
+const fz=(c,base)=>{const n=[...c.hanzi].length,per=n>6?Math.ceil(n/2):n;return `font-size:min(${base},calc((100vw - 84px)/${per}))`};
 function review(anim){
   if(!sess.q.length)return endV();
   const c=sess.q[0],i=cards.indexOf(c),g=gl(c),p=sess.done/sess.total*100;
   const top=`<div class=top><button class=x onclick="quit()">✕</button><div class=bar><i style="width:${p}%"></i></div><span>${sess.done}/${sess.total}</span></div>`;
-  const back=`<div class="card bk ${anim?'in':''}"><div class=big>${esc(c.hanzi)}</div><div class=py>${esc(c.pinyin)}</div><div class=zy>${esc(c.zhuyin)}</div>${c.meaning?`<div class=mu>${esc(c.meaning)}</div>`:''}<button class=spk onclick="speak(${i})">🔊</button><div class=chips><span class="badge g${g}">${g==='N'?'Nouveau':g}</span>${tg(c).map(t=>`<span class=chip>${esc(t)}</span>`).join('')}<span class=chip onclick="tagIdx(${i})">🏷 tag</span></div></div>
+  const back=`<div class="card bk ${anim?'in':''}"><div class=big style="${fz(c,'22vw,96px')}">${esc(c.hanzi)}</div><div class=py>${esc(c.pinyin)}</div><div class=zy>${esc(c.zhuyin)}</div>${c.meaning?`<div class=mn>${esc(c.meaning)}</div>`:''}<button class=spk onclick="speak(${i})">🔊</button><div class=chips><span class="badge g${g}">${g==='N'?'Nouveau':g}</span>${tg(c).map(t=>`<span class=chip>${esc(t)}</span>`).join('')}<span class=chip onclick="tagIdx(${i})">🏷 tag</span></div></div>
   <div class=rate>${['Oublié','Difficile','Bien','Facile'].map((t,r)=>`<button style="background:var(--g${'FDBA'[r]})" onclick="rate(${r})">${t}<small>→ ${GR[nl(stt(c).l,r)]}</small></button>`).join('')}</div>`;
-  const front=`<div class=card onclick="flip()"><div class=big>${esc(c.hanzi)}</div><p class=mu>Touche pour retourner</p></div><div class=rate style="visibility:hidden"><button>x<small>x</small></button></div>`;
+  const front=`<div class=card onclick="flip()"><div class=big style="${fz(c,'32vw,140px')}">${esc(c.hanzi)}</div><p class=mu>Touche pour retourner</p></div><div class=rate style="visibility:hidden"><button>x<small>x</small></button></div>`;
   $('#view').innerHTML=`<div class=rv>${top}${sess.flip?back:front}</div>`;
 }
 function endV(){
@@ -132,7 +150,7 @@ function homeV(){
     ${fsel()}
     <h3>Cartes par session</h3>
     <div class=seg>${[50,80,100].map(x=>`<button class="${S.size===x?'on':''}" onclick="S.size=${x};save();homeV()">${x}</button>`).join('')}</div>
-    <button class=go onclick="start()">Commencer (${Math.min(S.size,v.length)} cartes)</button>`);
+    <button class=go onclick="start()">Commencer (${pl(Math.min(S.size,v.length),'carte')})</button>`);
 }
 function listV(){
   $('#view').innerHTML=`<h1>Cartes</h1><input type=search id=qs placeholder="Rechercher un mot, pinyin ou tag" value="${esc(qs)}" oninput="qs=this.value;fillList()"><div id=ls style="margin-top:12px"></div>`;
@@ -154,8 +172,12 @@ function setV(){
   <h3>Sauvegarde de la progression</h3>
   <button class=btn onclick="exp()">Exporter (fichier JSON)</button>
   <label class=btn>Importer une sauvegarde<input type=file accept=".json,application/json" hidden onchange="imp(this.files[0])"></label>
+  <h3>Application</h3>
+  <button class=btn onclick="upd()">Forcer la mise à jour de l'application</button>
+  <p class=mu style="text-align:center">Version ${VER}</p>
   <button class=btn style="color:var(--gF)" onclick="rst()">Tout réinitialiser (progression, historique, tags)</button>`;
 }
+async function upd(){try{const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));const k=await caches.keys();await Promise.all(k.filter(x=>x!=='hanzi-data').map(x=>caches.delete(x)))}catch(e){}location.reload()}
 async function reload(){$('#view').innerHTML='<p class=mu>Chargement…</p>';await load();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='hanzi-progress-'+new Date().toISOString().slice(0,10)+'.json';a.click()}
 async function imp(f){if(!f)return;try{const o=JSON.parse(await f.text());if(!o.c)throw 0;S={size:50,auto:true,...o};save();render();alert('Sauvegarde importée')}catch(e){alert('Fichier invalide')}}
@@ -229,13 +251,13 @@ function writeV(){
   ${fsel()}
   <h3>Caractères par session</h3>${sg('wn',[[10,'10'],[20,'20'],[30,'30']],10)}
   <h3>Tolérance du tracé</h3>${sg('tol',[[.8,'Stricte'],[1,'Normale'],[1.3,'Souple']],1)}
-  <button class=go onclick="wStart()">Commencer (${Math.min(S.wn||10,cnt)} caractères)</button>`);
+  <button class=go onclick="wStart()">Commencer (${pl(Math.min(S.wn||10,cnt),'caractère')})</button>`);
 }
 function wStart(){
   const seen=new Map();
   vis().forEach(c=>{const hs=han(c.hanzi);hs.forEach((ch,i)=>{if(!seen.has(ch))seen.set(ch,{ch,c,i,n:hs.length})})});
   const it=shuf([...seen.values()]).sort((a,b)=>((S.w||{})[a.ch]??-1)-((S.w||{})[b.ch]??-1)).slice(0,S.wn||10);
-  if(!it.length)return;
+  if(!it.length)return;dd='';
   it.forEach(x=>fetch(hwURL(x.ch)).catch(()=>{})); // préchargement : sert aussi de cache hors ligne
   sess=null;W={it,i:0,res:[],mode:S.wm||1};render();
 }
@@ -296,7 +318,7 @@ function wEnd(){
 }
 
 /* ---------- Démarrage ---------- */
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sess=null;W=null;wr=null;render()});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;sess=null;W=null;wr=null;dd='';render()});
 $('#view').innerHTML='<p class=mu>Chargement…</p>';
 load().then(render);
 window.speechSynthesis?.getVoices();

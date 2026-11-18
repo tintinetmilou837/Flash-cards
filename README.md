@@ -17,11 +17,12 @@ Format (UTF-8, première ligne = en-têtes) :
     貓,māo,ㄇㄠ,animals;lesson 2,chat
 
 - `tags` : plusieurs tags séparés par `;`. `meaning` est optionnel.
+- Noms d'en-têtes reconnus : caractère = hanzi / chinese / chinois / 漢字 ; tags = tags / lesson / leçon / unit / category ; traduction = meaning / english / anglais / definition / traduction. Une colonne `Lesson` avec `9` donne le tag « lesson 9 ». Les colonnes non reconnues sont ignorées.
 - Séparateur `,` ou `;` accepté. Depuis Excel : « CSV UTF-8 ».
 - Tags supplémentaires : touche une carte dans l'onglet Cartes (ou « tag » au verso en révision).
 
-## Choisir ses decks
-Dans Réviser et Écriture, touche un ou plusieurs decks pour ne travailler que ceux-là (le bouton « Tous » les réactive). Le choix est mémorisé. Le menu des tags ne propose que les tags des decks choisis.
+## Choisir ses decks et ses tags
+Dans Réviser et Écriture, deux menus déroulants à cases à cocher : **decks** et **tags** (avec recherche, « Tout cocher » / « Tout décocher »). Rien de coché = tout. Plusieurs tags cochés = cartes ayant au moins l'un d'eux. Le choix est mémorisé, et la liste des tags ne montre que ceux des decks choisis.
 
 ## Niveaux
 Nouveau → F (oublié) · E · D · C · B · A (maîtrisé). Prochaine révision : F ≈ 10 min, E 1 j, D 3 j, C 7 j, B 14 j, A 30 j.
