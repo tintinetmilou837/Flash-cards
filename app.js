@@ -1,5 +1,5 @@
 'use strict';
-const VER='v9 · 18 nov. 2026',KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
+const VER='v10 · 18 nov. 2026',KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S=JSON.parse(localStorage.getItem(KEY)||'null')||{c:{},size:50,auto:true};
@@ -64,8 +64,9 @@ function toCards(rows,deck){
   if(!hasH)Object.assign(ix,{hanzi:0,pinyin:1,zhuyin:2,tags:3,meaning:4});
   if(ix.hanzi==null)ix.hanzi=0;
   const les=/^(lesson|leçon|lecon|unit)$/.test(h[ix.tags]??''),tv=v=>les&&/^\d+$/.test(v)?h[ix.tags]+' '+v:v; // colonne « Lesson » = 9 → tag « lesson 9 »
-  return (hasH?rows.slice(1):rows).map(r=>{const g=k=>(r[ix[k]]??'').trim();
-    return {id:deck+'/'+g('hanzi'),deck,hanzi:g('hanzi'),pinyin:g('pinyin'),zhuyin:g('zhuyin'),meaning:g('meaning'),tags:tv(g('tags')).split(/[;|]/).map(x=>x.trim()).filter(Boolean)}}).filter(c=>c.hanzi);
+  const seen={}; // un même mot présent deux fois dans le deck garde une progression séparée (id « …#2 »)
+  return (hasH?rows.slice(1):rows).map(r=>{const g=k=>(r[ix[k]]??'').trim(),k0=deck+'/'+g('hanzi'),n=seen[k0]=(seen[k0]||0)+1;
+    return {id:n>1?k0+'#'+n:k0,deck,hanzi:g('hanzi'),pinyin:g('pinyin'),zhuyin:g('zhuyin'),meaning:g('meaning'),tags:tv(g('tags')).split(/[;|]/).map(x=>x.trim()).filter(Boolean)}}).filter(c=>c.hanzi);
 }
 
 /* ---------- Chargement des decks ---------- */
