@@ -118,3 +118,17 @@ select,input[type=search]{width:100%;padding:12px;border:0;border-radius:12px;ba
 .ck span{flex:1;min-width:0;overflow-wrap:anywhere}
 .ck small{color:var(--mu)}
 .wh .cw{max-width:55%;text-align:right;overflow-wrap:anywhere}
+.tw{background:var(--cd);border-radius:14px;overflow:hidden}
+.tr{display:grid;grid-template-columns:110px 170px 170px 1fr;gap:4px 12px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--ln)}
+.tr:last-child{border-bottom:0}
+.tr.th{font-size:12px;color:var(--mu);font-weight:600}
+.tr .h{font:400 22px "Songti TC","Noto Serif TC",serif;overflow-wrap:anywhere}
+.tr span{overflow-wrap:anywhere}
+@media(max-width:640px){
+  .tr{grid-template-columns:96px 1fr 1fr;grid-template-areas:"h p z" "e e e";gap:2px 10px}
+  .tr.th{display:none}
+  .tr .h{grid-area:h}
+  .tr .p{grid-area:p}
+  .tr .z{grid-area:z}
+  .tr .e{grid-area:e;color:var(--mu);font-size:14px}
+}

@@ -1,9 +1,9 @@
 'use strict';
-const VER='v10 · 18 nov. 2026',KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
+const VER='v12 · 18 nov. 2026',KEY='zhcards.v1',GR=['F','E','D','C','B','A'],IV=[.007,1,3,7,14,30],DAY=864e5;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S=JSON.parse(localStorage.getItem(KEY)||'null')||{c:{},size:50,auto:true};
-let cards=[],tab='home',dd='',ddq='',sess=null,qs='',calM=null,chartN=7;
+let cards=[],tab='home',dd='',ddq='',tq='',sess=null,qs='',calM=null,chartN=7;
 const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
@@ -84,7 +84,7 @@ async function load(){
     const r=await fetch('decks/'+encodeURIComponent(n),{cache:'no-cache'});if(!r.ok)return[];
     const rows=parseCSV(await r.text());return rows.length?toCards(rows,n.replace(/\.csv$/i,'')):[];
   }catch(e){return[]}}));
-  cards=res.flat();
+  cards=res.flat();cards.forEach((c,i)=>c.i=i);
 }
 
 /* ---------- Audio (voix mandarin de l'appareil) ---------- */
@@ -142,9 +142,10 @@ function endV(){
   $('#view').innerHTML=`<div class=rv style="justify-content:center;text-align:center"><h1>完成</h1><p class=mu>${sess.total} cartes révisées</p><button class=go onclick="quit()">Retour</button></div>`;
 }
 function homeV(){
+  if(S.rm==='t')return tableV();
   const v=vis(),now=Date.now(),n={N:0,A:0,B:0,C:0,D:0,E:0,F:0};let due=0;
   v.forEach(c=>{n[gl(c)]++;const s=stt(c);if(s.l!=null&&s.due<=now)due++});
-  $('#view').innerHTML=`<h1>漢字卡</h1>`+(!cards.length
+  $('#view').innerHTML=`<h1>漢字卡</h1>${rmSeg()}`+(!cards.length
     ?`<p class=mu>Aucune carte chargée. Ajoute un fichier .csv dans le dossier decks/ du dépôt GitHub, puis va dans Réglages → Recharger.</p>`
     :`<div class=tiles>${['N','A','B','C','D','E','F'].map(k=>`<div class="tile g${k}"><b>${n[k]}</b><span>${k==='N'?'Nouveau':k}</span></div>`).join('')}</div>
     <p class=mu style="margin:10px 2px 0">${due} à revoir aujourd'hui · ${v.length} cartes</p>
@@ -316,6 +317,21 @@ function wEnd(){
   <div class=ql>${[3,2,1,0].map(l=>`<div><i style="background:var(${LV[l][1]})"></i>${LV[l][0]} · ${c[l]}</div>`).join('')}</div>
   <div class=wgs>${r.map(x=>`<span style="--c:var(${LV[x.l][1]})">${esc(x.ch)}</span>`).join('')}</div>
   <button class=go onclick="wQuit()">Retour</button></div>`;
+}
+
+
+/* ---------- Mode tableau : toutes les infos de chaque carte sur une ligne ---------- */
+function rmSeg(){return `<div class=seg style="margin-bottom:14px">${[['f','Flashcards'],['t','Tableau']].map(([k,t])=>`<button class="${(S.rm||'f')===k?'on':''}" onclick="S.rm='${k}';save();dd='';render()">${t}</button>`).join('')}</div>`}
+function tableV(){
+  $('#view').innerHTML=`<h1>漢字卡</h1>${rmSeg()}${cards.length?fsel():''}`+(!cards.length?'<p class=mu>Aucune carte chargée.</p>':
+  `<input type=search placeholder="Rechercher dans le tableau" value="${esc(tq)}" oninput="tq=this.value;tFill()" style="margin-top:12px"><p class=mu id=tn style="margin:10px 2px"></p>
+  <div class=tw><div class="tr th"><span>Chinese</span><span>Pinyin</span><span>Zhuyin</span><span>English</span></div><div id=tbd></div></div>`);
+  if(cards.length)tFill();
+}
+function tFill(){
+  const t=tq.trim().toLowerCase(),r=vis().filter(c=>!t||[c.hanzi,c.pinyin,c.zhuyin,c.meaning,c.deck,...tg(c)].join(' ').toLowerCase().includes(t));
+  $('#tn').textContent=pl(r.length,'carte')+' · touche un caractère pour l\'entendre';
+  $('#tbd').innerHTML=r.map(c=>`<div class=tr><b class=h onclick="speak(${c.i})">${esc(c.hanzi)}</b><span class=p>${esc(c.pinyin)}</span><span class=z>${esc(c.zhuyin)}</span><span class=e>${esc(c.meaning)}</span></div>`).join('');
 }
 
 /* ---------- Démarrage ---------- */

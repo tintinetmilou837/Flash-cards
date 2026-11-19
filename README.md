@@ -38,6 +38,9 @@ Format (UTF-8, première ligne = en-têtes) :
 - **Niveaux** : Nouveau → F (oublié) · E · D · C · B · A (maîtrisé). Prochaine révision : F ≈ 10 min, E 1 j, D 3 j, C 7 j, B 14 j, A 30 j. Oublié → F · Difficile → −1 · Bien → +1 · Facile → +2 (une carte nouvelle démarre à F, E, D ou B). Une carte « oubliée » revient une fois dans la même session.
 - **Session** de 50, 80 ou 100 cartes : d'abord les cartes à revoir (les plus faibles en premier), puis les nouvelles, puis les prochaines à venir pour compléter.
 
+## Mode Tableau
+Dans l'onglet Réviser, le sélecteur **Flashcards / Tableau** change de mode. Le mode Tableau affiche toutes les cartes, une par ligne, avec Chinese, Pinyin, Zhuyin et English. Sur un grand écran (iPad), les quatre colonnes sont sur une seule ligne ; sur iPhone, Chinese, Pinyin et Zhuyin sont sur la première ligne et English sur la seconde. Les mêmes filtres decks / tags s'appliquent, plus une recherche texte (qui cherche aussi dans les tags et le nom du deck). Touche un caractère pour l'entendre. Le mode choisi est mémorisé.
+
 ## Choisir ses decks et ses tags
 Dans Réviser et Écriture, deux menus déroulants à cases à cocher : **decks** et **tags** (avec recherche, « Tout cocher » / « Tout décocher »). Rien de coché = tout. Plusieurs tags cochés = cartes ayant au moins l'un d'eux. Le choix est mémorisé, et la liste des tags ne montre que ceux des decks choisis.
 

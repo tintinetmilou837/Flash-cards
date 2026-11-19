@@ -1,4 +1,4 @@
-const V='hanzi-v10',D='hanzi-data',SHELL=['./','index.html','style.css','app.js','manifest.webmanifest','icons/icon-192.png','vendor/hanzi-writer.min.js'];
+const V='hanzi-v12',D='hanzi-data',SHELL=['./','index.html','style.css','app.js','manifest.webmanifest','icons/icon-192.png','vendor/hanzi-writer.min.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V&&x!==D).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{
